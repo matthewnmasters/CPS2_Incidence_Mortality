@@ -623,8 +623,14 @@ all_survey_info<- all_survey_info %>%
     end_follow_up_incidence = case_when(
       #if not verified, go to last cancer free survey, if it's verified, keep normal end followup
       in_verified == 0 & !is.na(first_reported_date) ~ last_cancer_report_free_date,
-      #should it be >180 days after report, it'll be excluded later in exclusions
-      #should dxdate happen to be after last survey, it will be censored back to last known cancer free
+      #for those that report and it's in the verified file in some manner:
+      #0) if diagnosis_date is before report, as is most common, end follow-up stays the same (we assign stop_date_incidence to diagnosis_date later)
+      #1)should it be >180 days after report, it'll be excluded later in exclusions
+      #2)should it be >0<=180 and before their last survey it will be treated as incident
+      #3)should it be >0<=180 but after their last survey/between-survey death, should we censor to last survey (not incident), or censor to last cancer free (also not incident)?
+      #originally the code censored to last survey, but has been changed in the next line of code that we could simply remove if we want to change it back
+      #this code will make the >180 people end followup go back, too, but they get excluded so no problem 
+      in_verified == 1 & !is.na(first_reported_date) & diagnosis_date > end_follow_up_incidence ~ last_cancer_report_free_date,
       TRUE ~ end_follow_up_incidence
     ),
     end_follow_up_mortality = case_when(
